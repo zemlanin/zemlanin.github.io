@@ -7,6 +7,7 @@
       a { text-decoration: none; }
       h1, a, #contacts b { color: #00A500; }
       li { list-style-type: none; }
+      #pet-projects .used li { display: inline; }
     </style>
   </head>
   <body>
@@ -22,18 +23,39 @@
       </li>
     </ul>
     <h2>pet projects</h2>
-    <ul>
+    <ul id="pet-projects">
       <li>
         <a href="https://github.com/zemlanin/blackwidow">blackwidow</a>: configurable web dashboard
+        <ul class="used">
+          <li>React</li>
+          <li>RxJS</li>
+          <li>lodash</li>
+          <li>ramda</li>
+          <li>ES6<sup>(via babel)</sup></li>
+          <li>Parse<sup>(for Slack integration)</sup></li>
+        </ul>
       </li>
       <li>
         <a href="https://github.com/seedofjoy/bazooka">bazooka</a>: logic binding framework
       </li>
       <li>
         <a href="https://github.com/zemlanin/rxlides">rxlides</a>: interactive presentation about RxJS
+        <ul class="used">
+          <li>RxJS</li>
+          <li>lodash</li>
+          <li>ES6<sup>(via babel)</sup></li>
+        </ul>
       </li>
       <li>
         <a href="https://github.com/zemlanin/gifmess">gifmess</a>: personal gif archive tool
+        <ul class="used">
+          <li>virtual-dom</li>
+          <li>baconjs</li>
+          <li>ramda</li>
+          <li>bazooka</li>
+          <li>ES6<sup>(via babel)</sup></li>
+          <li>Dropbox api</li>
+        </ul>
       </li>
     </ul>
     <h2>contacts</h2>
