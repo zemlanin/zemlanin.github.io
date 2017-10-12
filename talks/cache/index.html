@@ -79,7 +79,7 @@ resp_headers <span class="sf_code_syntax_keyword">=</span> {
 <ol start="1"><li>либо не кэшировать ответ
 </li><li>либо кэшировать его и делать <code class='code-inline'>Set-Cookie</code> <b>при каждом обращении к кэшу</b>
 </li></ol>
-<p>Оба таких поведения довольно фиговы (конечно, второй <i>сильно</i> хуже первого, так как не только нагружает сервер, но и может ломать авторизацию). Поэтому, если добавляете один из хэдеров про «свежесть» (<code class='code-inline'>Cache-Control: max-age=N</code>, <code class='code-inline'>Expires</code> и/или <code class='code-inline'>Last-Modified</code>), то <b>ни в коем случае не устанавливайте их одновременно</b> <code class='code-inline'>Set-Cookie</code></p>
+<p>Оба таких поведения довольно нежелательны (конечно, второй <i>сильно</i> хуже первого, так как не только нагружает сервер, но и может ломать авторизацию). Поэтому, если добавляете один из хэдеров про «свежесть» (<code class='code-inline'>Cache-Control: max-age=N</code>, <code class='code-inline'>Expires</code> и/или <code class='code-inline'>Last-Modified</code>), то <b>ни в коем случае не устанавливайте их одновременно</b> <code class='code-inline'>Set-Cookie</code></p>
 <br>
 <pre><code class='code-multiline'><span class="sf_code_syntax_keyword">if</span> should_set_some_cookie:
     response.set_cookie(<span class="sf_code_syntax_string">'some_cookie'</span>, value)
@@ -104,7 +104,7 @@ resp_headers <span class="sf_code_syntax_keyword">=</span> {
 <p>После ответов же посетителя, извинением не обойтись — нужно обязательно прятать опрос. Есть несколько способов это делать. Например, записывать в <code class='code-inline'>localStorage</code> айдишники уже отвеченных опросов. Но, раз уж этот доклад про HTTP-хэдеры, то воспользуемся ими</p>
 <br>
 <h3><code class='code-inline'>Vary</code></h3>
-<p>По умолчанию, браузеры идентифицируют кэшируемые ресурсы по их URL’ам.  Другой URL — другой ресурс — другой кэш</p>
+<p>По умолчанию, браузеры идентифицируют кэшируемые ресурсы по их URL’ам и HTTP-методам (<code class='code-inline'>GET</code>, <code class='code-inline'>POST</code> и так далее).  Другой URL — другой ресурс — другой кэш</p>
 <br>
 <p>Но ресурсы для кэширования можно идентифицировать и с помощью хэдеров запроса благодаря хэдеру ответа <code class='code-inline'>Vary</code>. Например, можно сделать так, что CORS-запросы с сайта <code class='code-inline'>example.com</code> будут кэшироваться отдельно от запросов с сайта <code class='code-inline'>example.org</code> с помощью хэдера <code class='code-inline'>Vary: Origin</code></p>
 <br>
@@ -138,7 +138,7 @@ resp_headers <span class="sf_code_syntax_keyword">=</span> {
 <hr>
 <p><img src='images/%D0%A1%D0%BA%D1%80%D0%B8%D0%BD%D1%88%D0%BE%D1%82%202017-10-03%2014.24.49.png'></p>
 <br>
-<p>Когда кэш просрочился, бразуер сделал запрос с <code class='code-inline'>ETag</code>, на что сервер вернул ответ без тела (<i>начальный ответ был 1.8 KB, последний же — всего 388 B</i>) и со статусом <code class='code-inline'>304 Not Modified</code></p>
+<p>Когда кэш просрочится, браузер сделает запрос с <code class='code-inline'>If-None-Match</code>, на что сервер вернёт ответ без тела (<i>начальный ответ был 1.8 KB, последний же — всего 388 B</i>) и со статусом <code class='code-inline'>304 Not Modified</code></p>
 <br>
 <hr>
 <p><img src='images/%D0%A1%D0%BA%D1%80%D0%B8%D0%BD%D1%88%D0%BE%D1%82%202017-10-03%2014.22.35.png'></p>
