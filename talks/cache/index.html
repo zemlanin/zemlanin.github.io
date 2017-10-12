@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Cache Already Done</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="created" content="2017-10-02T11:30:26+0300"/>
+        <meta name="modified" content="2017-10-05T17:55:44+0300"/>
+    </head>
+    <body>
+        <div class="note-wrapper">
+            <h1>Cache Already Done</h1>
+<h3>Previously</h3>
+<p>Зимой я рассказывал про то, что <a href="https://cdn.rawgit.com/zemlanin/zemlanin.github.io/ecb9a872/talks/api_already_done.pdf">в HTTP уже есть механизмы для отдачи/загрузки данных частями, для авторизации и для кэширования</a>. Сейчас я бы хотел рассказать о последнем с более практической точки зрения</p>
+<br>
+<h3>Intro</h3>
+<p><img src='images/favicon.png'></p>
+<br>
+<p>Меня зовут <a href="https://anton.codes">Антон</a>, я работаю в компании <a href="https://evo.company">Evo</a> и делаю сервис пользовательского фидбека Colbert (Колбер)</p>
+<br>
+<h3>Суть сервиса/проблемы</h3>
+<p><img src='images/%D0%A1%D0%BA%D1%80%D0%B8%D0%BD%D1%88%D0%BE%D1%82%202017-10-02%2017.15.32.png'></p>
+<br>
+<p>Суть сервиса заключается в том, что «хозяева» сайта встраивают колберовский <code class='code-inline'>&lt;script&gt;</code> и получают возможность задавать те или иные вопросы на каждой своей странице. Чтобы получить эти вопросы, скрипт стучится на сервер. Сервер отдаёт (приблизительно) все опросы на этом сайте, на которые посетитель ещё не отвечала, а уже скрипт решает, нужно ли показать опрос про качество поиска или про опыт заказа</p>
+<br>
+<p>То есть, ответ сервера обновляется намного реже, чем приходят запросы (потому что редактирование опросов и ответы того или иного посетителя реже, чем переход по страницам). Идеальная кандидатура для кэширования</p>
+<br>
+<h3>Свежесть / Валидность</h3>
+<p>В HTTP есть две группы хэдеров про кэширование: «свежесть» и «валидация»</p>
+<br>
+<h3>Свежесть</h3>
+<p>Первая группа указывает на то, что клиент (браузер) может некоторое время после получения ответа не обращаться к серверу и переиспользовать данные из этого ответа. То есть, может <b>вообще</b> не обращаться. Эти хэдеры экономят сетевые запросы, трафик <i>и</i> серверное время</p>
+<br>
+<p>К этой группе относятся <code class='code-inline'>Cache-Control: max-age=N</code>, <code class='code-inline'>Expires</code> и, в каком-то смысле, <code class='code-inline'>Last-Modified</code> (браузеры кэшируют ответы с ним и с <code class='code-inline'>Date</code> на время <code class='code-inline'>t = (Date - LastModified) / 10</code>)</p>
+<br>
+<p>Отдельно упомяну про то, что <code class='code-inline'>Cache-Control: max-age=N</code> начинает отсчёт не по локальным часам, а по значению <code class='code-inline'>Date</code>. Так что, если у вас на сервере неправильно настроено время (или вы тестируете сервер внутри VirtualBox’а, где течение времени может заметно отставать от реального), проверка на «свежесть» может не работать. Или перестать работать. Или работать слишком агрессивно, устанавливая инвалидацию в <i>очень</i> далёком будущем, но об этом потом</p>
+<br>
+<h3>Валидность</h3>
+<p>Вторая группа служит для сравнения кэша браузера с новым ответом сервера (если он всё-таки был сделан после проверки на «свежесть»)</p>
+<br>
+<p>К этой группе относятся хэдеры <code class='code-inline'>ETag</code> (в ответе сервера) / <code class='code-inline'>If-None-Match</code> (в запросе клиента) и <code class='code-inline'>Last-Modified</code> / <code class='code-inline'>If-Modified-Since</code>. Эти хэдеры помогут экономить на трафике и, если оптимизировать загрузку данных на самом сервере, серверное время — сетевые запросы всё равно будут выполняться. Нужно же как-то получить актуальное значение <code class='code-inline'>ETag</code> / <code class='code-inline'>Last-Modified</code> от сервера</p>
+<br>
+<p>Сама валидация происходит на сервере, путём сравнения значений <code class='code-inline'>If-None-Match</code> и / или <code class='code-inline'>If-Modified-Since</code> (которые автоматически отправляются браузерами, если ресурс ранее отдавался с хэдерами <code class='code-inline'>ETag</code> и / или <code class='code-inline'>Last-Modified</code> соответственно) со значениями, которые вычислил сервер для ответа</p>
+<br>
+<p>Оно звучит немного запутано на словах, но понятнее в коде</p>
+<br>
+<h3>Practice</h3>
+<p><i>Сервер Колбера написан на Python, так что примеры будут на нём. Вчитываться необязательно</i></p>
+<br>
+<pre><code class='code-multiline'>resp_body <span class="sf_code_syntax_keyword">=</span> {
+    <span class="sf_code_syntax_string">'questionnaires'</span>: get_questionnaires(),
+}
+json_resp <span class="sf_code_syntax_keyword">=</span> json.dumps(resp_body).encode(<span class="sf_code_syntax_string">'utf-8'</span>)
+etag <span class="sf_code_syntax_keyword">=</span> f<span class="sf_code_syntax_string">'W/"{hashlib.sha1(json_body).hexdigest()[:8]}"'</span>
+
+resp_headers <span class="sf_code_syntax_keyword">=</span> {
+    <span class="sf_code_syntax_string">'cache-control'</span>: <span class="sf_code_syntax_string">'private, max-age=120'</span>,
+    <span class="sf_code_syntax_string">'etag'</span>: etag,
+    <span class="sf_code_syntax_comment"># spoilers:
+</span>    <span class="sf_code_syntax_comment"># 'vary': 'Origin, Cookie'
+</span>}
+
+<span class="sf_code_syntax_keyword">if</span> req.headers.get(<span class="sf_code_syntax_string">'if-none-match'</span>) <span class="sf_code_syntax_keyword">==</span> etag:
+    <span class="sf_code_syntax_keyword">return</span> web.HTTPNotModified(  <span class="sf_code_syntax_comment"># Status: 304
+</span>        headers<span class="sf_code_syntax_keyword">=</span>resp_headers,
+    )
+
+<span class="sf_code_syntax_keyword">return</span> web.HTTPOk(  <span class="sf_code_syntax_comment"># Status: 200
+</span>    body<span class="sf_code_syntax_keyword">=</span>json_resp,
+    content_type<span class="sf_code_syntax_keyword">=</span><span class="sf_code_syntax_string">'application/json'</span>,
+    headers<span class="sf_code_syntax_keyword">=</span>resp_headers,
+)</code></pre>
+<p><br></p>
+<p>Кэши есть не только у браузеров, но и у CDN, reverse proxy, load balancer’ов… Для того, чтобы они не вздумали кэшировать ответы сервера, предназначенные для определённого посетителя, нужен хэдер <code class='code-inline'>Cache-Control: private</code></p>
+<br>
+<h3>Хэдер <code class='code-inline'>Set-Cookie</code> в ответе сервера</h3>
+<p>Браузер кэширует не только тело ответа сервера (в котором находится заветный JSON’чик), но и <b>все</b> хэдеры. В том числе и хэдер <code class='code-inline'>Set-Cookie</code>, который устанавливает куки. Если этот хэдер есть в кэшируемом ответе, то браузер может:</p>
+<br>
+<ol start="1"><li>либо не кэшировать ответ
+</li><li>либо кэшировать его и делать <code class='code-inline'>Set-Cookie</code> <b>при каждом обращении к кэшу</b>
+</li></ol>
+<p>Оба таких поведения довольно фиговы (конечно, второй <i>сильно</i> хуже первого, так как не только нагружает сервер, но и может ломать авторизацию). Поэтому, если добавляете один из хэдеров про «свежесть» (<code class='code-inline'>Cache-Control: max-age=N</code>, <code class='code-inline'>Expires</code> и/или <code class='code-inline'>Last-Modified</code>), то <b>ни в коем случае не устанавливайте их одновременно</b> <code class='code-inline'>Set-Cookie</code></p>
+<br>
+<pre><code class='code-multiline'><span class="sf_code_syntax_keyword">if</span> should_set_some_cookie:
+    response.set_cookie(<span class="sf_code_syntax_string">'some_cookie'</span>, value)
+
+    <span class="sf_code_syntax_comment"># shouldn't cache responses with Set-Cookie
+</span>    <span class="sf_code_syntax_keyword">if</span> <span class="sf_code_syntax_string">'cache-control'</span> <span class="sf_code_syntax_keyword">in</span> response.headers:
+        <span class="sf_code_syntax_keyword">del</span> response.headers[<span class="sf_code_syntax_string">'cache-control'</span>]
+
+    <span class="sf_code_syntax_keyword">if</span> <span class="sf_code_syntax_string">'etag'</span> <span class="sf_code_syntax_keyword">in</span> response.headers:
+        <span class="sf_code_syntax_keyword">del</span> response.headers[<span class="sf_code_syntax_string">'etag'</span>]</code></pre>
+<p><br></p>
+<p>Внимательная читательница скажет, что «Но, если мы на каждый ответ авторизованному посетителю обновляем ему <code class='code-inline'>auth</code>-куку, то кэширование же никогда не сработает». Да, не сработает. Потому что <b>не надо ставить</b> <code class='code-inline'>Set-Cookie</code> на каждый ответ (даже если не настраиваете кэширование) </p>
+<br>
+<h3>Инвалидация</h3>
+<p>Юморной же читатель уже давно хочет пошутить про «две главных проблемы программирования». На Колбере есть два повода инвалидации кэша:</p>
+<br>
+<ol start="1"><li>обновился список активных опросов (текст, статус активности и т.п.)
+</li><li>посетитель уже ответил на один из опросов
+</li></ol>
+<p>Первая причина частично решается обновлением <code class='code-inline'>ETag</code>, частично — извинением перед редакторами опросов «ваши изменения будут видны посетителям сайта в течении двух минут»</p>
+<br>
+<p>После ответов же посетителя, извинением не обойтись — нужно обязательно прятать опрос. Есть несколько способов это делать. Например, записывать в <code class='code-inline'>localStorage</code> айдишники уже отвеченных опросов. Но, раз уж этот доклад про HTTP-хэдеры, то воспользуемся ими</p>
+<br>
+<h3><code class='code-inline'>Vary</code></h3>
+<p>По умолчанию, браузеры идентифицируют кэшируемые ресурсы по их URL’ам.  Другой URL — другой ресурс — другой кэш</p>
+<br>
+<p>Но ресурсы для кэширования можно идентифицировать и с помощью хэдеров запроса благодаря хэдеру ответа <code class='code-inline'>Vary</code>. Например, можно сделать так, что CORS-запросы с сайта <code class='code-inline'>example.com</code> будут кэшироваться отдельно от запросов с сайта <code class='code-inline'>example.org</code> с помощью хэдера <code class='code-inline'>Vary: Origin</code></p>
+<br>
+<p>Обратно к примеру Колбера. Сервер, кроме <code class='code-inline'>Cache-Control</code> и <code class='code-inline'>ETag</code>, устанавливает хэдер <code class='code-inline'>Vary: Origin, Cookie</code></p>
+<br>
+<p>Когда посетитель отвечает на вопрос, мы устанавливаем ей куку <code class='code-inline'>latest_action</code> с таймстампом HTTP-запроса. Кука меняется, кэш опросов инвалидируется, проблема решена</p>
+<br>
+<h3>Danger Zone</h3>
+<p>Но может возникнуть ситуация, когда выполнить инвалидацию будет невозможно. Например, время на сервере часы установлены в далёкое будущее. Тогда сколько бы браузер ни <code class='code-inline'>fetch</code>ил бы ресурс, ему будет возвращаться значение из кэша</p>
+<br>
+<p>Насколько я знаю, в браузерах нет надёжного и / или простого способа инвалидировать кэши из Javascript’ового кода (<i>ServiceWorker’ы, имхо, ещё не обладают достаточной поддержкой и / или простотой использования</i>). Либо пользователь должен лично сбросить кэш (нажатием <code class='code-inline'>Cmd+Shift+R</code>, <code class='code-inline'>Ctrl-F5</code> или другого подобного «аккорда»), либо скрипт должен обращаться к другому ресурсу (т.е., нужно поменять URL ресурса и / или один из хэдеров, перечисленных в <code class='code-inline'>Vary</code>)</p>
+<br>
+<p>Кейсов для кэширования огромное множество и одного универсального способа для исправления таких ошибок нет. Поэтому могу только посоветовать:</p>
+<br>
+<ol start="1"><li>Учитывать пользователей со слишком старым кэшем при разработке (а такие <i>обязательно</i> будут) и что делать в таком случае
+</li><li>Тщательно тестировать и дебажить кэширование
+</li></ol>
+<h3>Дебаг</h3>
+<p>Юзайте ДевТулзы ¯\_(ツ)_/¯</p>
+<br>
+<hr>
+<p><img src='images/%D0%A1%D0%BA%D1%80%D0%B8%D0%BD%D1%88%D0%BE%D1%82%202017-10-03%2014.23.03.png'></p>
+<br>
+<p>Браузеры отдельно кэшируют Preflight <code class='code-inline'>OPTIONS</code>-запрос для <code class='code-inline'>CORS</code>а, так что он может не выполняться при форсированном обновлении (<code class='code-inline'>Cmd+Shift+R</code>). Жмите <code class='code-inline'>Disable cache</code>, чтобы полностью сбросить кэш</p>
+<br>
+<hr>
+<p><img src='images/%D0%A1%D0%BA%D1%80%D0%B8%D0%BD%D1%88%D0%BE%D1%82%202017-10-03%2014.22.35.png'></p>
+<br>
+<p>Пока кэш свежий, браузер отдаёт ресурс <code class='code-inline'>(for disk cache)</code></p>
+<br>
+<hr>
+<p><img src='images/%D0%A1%D0%BA%D1%80%D0%B8%D0%BD%D1%88%D0%BE%D1%82%202017-10-03%2014.24.49.png'></p>
+<br>
+<p>Когда кэш просрочился, бразуер сделал запрос с <code class='code-inline'>ETag</code>, на что сервер вернул ответ без тела (<i>начальный ответ был 1.8 KB, последний же — всего 388 B</i>) и со статусом <code class='code-inline'>304 Not Modified</code></p>
+<br>
+<hr>
+<p><img src='images/%D0%A1%D0%BA%D1%80%D0%B8%D0%BD%D1%88%D0%BE%D1%82%202017-10-03%2014.22.35.png'></p>
+<br>
+<p>После <code class='code-inline'>304</code>, браузер обновил хэдеры закэшированного ответа и снова отдаёт его <code class='code-inline'>(from disk cache)</code></p>
+<br>
+<hr>
+<p><img src='images/%D0%A1%D0%BA%D1%80%D0%B8%D0%BD%D1%88%D0%BE%D1%82%202017-10-03%2014.28.11.png'></p>
+<br>
+<p>В Хроме и Firefox есть страница <a href="about:cache">about:cache</a>, на которой можно детально изучить, что же именно закэшировал браузер</p>
+<br>
+<p>И не тестируйте кэшируемые эндпоинт, внаглую открыв его URL в браузере. Когда вы обновляете (<code class='code-inline'>Cmd+R</code>/<code class='code-inline'>F5</code>) страницу, браузеры игнорируют её «свежесть» и/или «валидность». Например, Хром сделает сетевой запрос с хэдером <code class='code-inline'>ETag</code> даже если прошлый ответ ещё не был просрочен</p>
+<br>
+<h3>Профит</h3>
+<p>Так зачем всё это? Какой профит?</p>
+<br>
+<p>После того, как Колбер начал работать с четырьмя хэдерами перечисленными здесь (<code class='code-inline'>Cache-Control</code>, <code class='code-inline'>ETag</code>, <code class='code-inline'>Vary</code> и <code class='code-inline'>If-None-Match</code>; шестью, если считать <code class='code-inline'>Set-Cookie</code> и <code class='code-inline'>Cookie</code>), количество запросов уменьшилось в три раза. И это с <i>очень</i> осторожной «свежестью» в две минуты</p>
+<br>
+<p><img src='images/%D0%A1%D0%BA%D1%80%D0%B8%D0%BD%D1%88%D0%BE%D1%82%202017-10-02%2016.01.40.png'></p>
+<br>
+<p>Недавно Колбера включили на <a href="https://prom.ua">Проме</a> и других сестринских проектах, где трафик в разы больше суммарного трафика сайтов, на которых Колбер был подключен на тот момент. О чём я узнал не из-за пятисотых ошибок, а из случайного разговора с коллегой. Сомневаюсь, что запуск получился бы насколько же гладким без этих хэдеров</p>
+<br>
+<h3>Спасибо</h3>
+<ul><li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching">https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching</a>
+</li><li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Conditional_requests">https://developer.mozilla.org/en-US/docs/Web/HTTP/Conditional_requests</a>
+</li><li><a href="https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/http-caching">https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/http-caching</a></li></ul>
+        </div>
+        <script type="text/javascript">
+            (function() {
+
+    var doc_ols = document.getElementsByTagName("ol");
+
+    for ( i=0; i<doc_ols.length; i++) {
+
+        var ol_start = doc_ols[i].getAttribute("start") - 1;
+        doc_ols[i].setAttribute("style", "counter-reset:ol " + ol_start + ";");
+
+    }
+
+})();
+        </script>
+        <style>
+            html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td,article,aside,canvas,details,embed,figure,figcaption,footer,header,hgroup,menu,nav,output,ruby,section,summary,time,mark,audio,video{margin:0;padding:0;border:0;font:inherit;font-size:100%;vertical-align:baseline}html{line-height:1}ol,ul{list-style:none}table{border-collapse:collapse;border-spacing:0}caption,th,td{text-align:left;font-weight:normal;vertical-align:middle}q,blockquote{quotes:none}q:before,q:after,blockquote:before,blockquote:after{content:"";content:none}a img{border:none}article,aside,details,figcaption,figure,footer,header,hgroup,main,menu,nav,section,summary{display:block}*{-moz-box-sizing:border-box;-webkit-box-sizing:border-box;box-sizing:border-box}html{font-size:87.5%;line-height:1.57143em}html{font-size:14px;line-height:1.6em;-webkit-text-size-adjust:100%}body{background:#fcfcfc;color:#545454;text-rendering:optimizeLegibility;font-family:"AvenirNext-Regular"}a{color:#de4c4f;text-decoration:none}h1{font-family:"AvenirNext-Medium";color:#333;font-size:1.6em;line-height:1.3em;margin-bottom:.78571em}h2{font-family:"AvenirNext-Medium";color:#333;font-size:1.3em;line-height:1em;margin-bottom:.62857em}h3{font-family:"AvenirNext-Medium";color:#333;font-size:1.15em;line-height:1em;margin-bottom:.47143em}p{margin-bottom:1.57143em;hyphens:auto}hr{height:1px;border:0;background-color:#dedede;margin:-1px auto 1.57143em auto}ul,ol{margin-bottom:1.57143em}ul ul,ul ol,ol ul,ol ol{margin-bottom:0px}ol li:before{content:counter(ol) ".";counter-increment:ol;color:#e06e73;text-align:right;display:inline-block;min-width:1em;margin-right:0.5em}b,strong{font-family:"AvenirNext-Bold"}i,em{font-family:"AvenirNext-Italic"}code{font-family:"Menlo-Regular"}.text-overflow-ellipsis{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sf_code_syntax_string{color:#D33905}.sf_code_syntax_comment{color:#838383}.sf_code_syntax_documentation_comment{color:#128901}.sf_code_syntax_number{color:#0E73A2}.sf_code_syntax_project{color:#5B2599}.sf_code_syntax_keyword{color:#0E73A2}.sf_code_syntax_character{color:#1B00CE}.sf_code_syntax_preprocessor{color:#920448}.note-wrapper{max-width:46em;margin:0px auto;padding:1.57143em 3.14286em}.note-wrapper.spotlight-preview{overflow-x:hidden}u{text-decoration:none;background-image:linear-gradient(to bottom, rgba(0,0,0,0) 50%,#e06e73 50%);background-repeat:repeat-x;background-size:2px 2px;background-position:0 1.05em}s{color:#878787}p{margin-bottom:0.1em}hr{margin-bottom:0.7em;margin-top:0.7em}ul li{text-indent:-0.6em}ul li:before{content:"•";color:#e06e73;display:inline-block;margin-right:0.3em}ul ul{margin-left:1.25714em}ol li{text-indent:-1.55em}ol ol{margin-left:1.25714em}blockquote{display:block;margin-left:-1em;padding-left:0.8em;border-left:0.2em solid #e06e73}.todo-list ul{margin-left:1.88571em}.todo-list li{text-indent:-1.75em}.todo-list li:before{content:"";display:static;margin-right:0px}.todo-checkbox{text-indent:-1.7em}.todo-checkbox svg{margin-right:0.3em;position:relative;top:0.2em}.todo-checkbox svg #check{display:none}.todo-checkbox.todo-checked #check{display:inline}.todo-checkbox.todo-checked .todo-text{text-decoration:line-through;color:#878787}.code-inline{display:inline-block;background:white;border:solid 1px #dedede;padding:0.0em 0.5em;font-size:0.9em}.code-multiline{display:block;background:white;border:solid 1px #dedede;padding:0.7em 1em;font-size:0.9em;overflow-x:auto}.hashtag{display:inline-block;color:white;background:#b8bfc2;padding:0.0em 0.5em;border-radius:1em;text-indent:0}.hashtag a{color:#fff}.address a{color:#545454;background-image:linear-gradient(to bottom, rgba(0,0,0,0) 50%,#0da35e 50%);background-repeat:repeat-x;background-size:2px 2px;background-position:0 1.05em}.address svg{position:relative;top:0.2em;display:inline-block;margin-right:0.2em}.color-preview{display:inline-block;width:1em;height:1em;border:solid 1px rgba(0,0,0,0.3);border-radius:50%;margin-right:0.1em;position:relative;top:0.2em;white-space:nowrap}.color-code{margin-right:0.2em;font-family:"Menlo-Regular";font-size:0.9em}.color-hash{opacity:0.4}.ordered-list-number{color:#e06e73;text-align:right;display:inline-block;min-width:1em}.arrow svg{position:relative;top:0.08em;display:inline-block;margin-right:0.15em;margin-left:0.15em}.arrow svg #rod{stroke:#545454}.arrow svg #point{fill:#545454}mark{color:inherit;display:inline-block;padding:0px 4px;background-color:#fcffc0}img{max-width:100%;height:auto}
+
+        </style>
+
+        <style>
+            li code.code-inline { text-indent: 0; }
+        </style>
+
+        <script type="text/javascript">
+          var _gauges = _gauges || [];
+          (function() {
+            var t   = document.createElement('script');
+            t.type  = 'text/javascript';
+            t.async = true;
+            t.id    = 'gauges-tracker';
+            t.setAttribute('data-site-id', '5843fd0cbb922a42d6006514');
+            t.setAttribute('data-track-path', 'https://track.gaug.es/track.gif');
+            t.src = 'https://d36ee2fcip1434.cloudfront.net/track.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(t, s);
+          })();
+        </script>
+    </body>
+</html>
