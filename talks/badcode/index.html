@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>0x0BADC0DE</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="created" content="2018-03-05T11:09:25+0200"/>
+        <meta name="modified" content="2018-03-29T11:55:45+0300"/>
+    </head>
+    <body>
+        <div class="note-wrapper">
+            <h1><code class='code-inline'>0x0BADC0DE</code></h1>
+<p><img src='0x0BADC0DE/title.png'></p>
+<p><i>Как быть чуточку этичнее</i></p>
+<br>
+<h2>Intro</h2>
+<p>Не так давно, StackOverflow <a href="https://insights.stackoverflow.com/survey/2018">опубликовал результаты</a> ежегодного опроса разработчиков. Среди холиворных вопросов вроде «Твой любимый редактор», были вопросы про этику</p>
+<br>
+<p><img src='0x0BADC0DE/responsability.png'></p>
+<br>
+<p>Например, «Кто отвечает за код, который делает что-то неэтичное?». Приблизительно 60% считает, что в неэтичном результате работы их кода, виновато руководство и/или менеджмент компании</p>
+<br>
+<p>Вы можете сказать «Что есть ‘этичное’? Это же нечто субъективное и <i>[отвращёно]</i> гуманитарное. Зачем мне это знать?»</p>
+<br>
+<p>Я не отвечу на первый вопрос, потому что в определение слов не умею, а Википедию вы и сами прочитаете, если будет интересно</p>
+<br>
+<p><img src='0x0BADC0DE/unethical.png'></p>
+<br>
+<p>Что же касается «Зачем», то затем, что <i>вы</i> — люди и решаете проблемы людей. И, судя по тому же опросу на StackOverflow, 95% из вас не стали бы писать код для решений, которые добавят проблем другим людям</p>
+<br>
+<p>В этой статье я постараюсь рассказать о том, <i>как</i> не писать неэтичный код</p>
+<br>
+<h2>Почему это важно?</h2>
+<p><img src='0x0BADC0DE/ab2bd533-4ed5-4d03-9f4d-cc20c0b62a6b.jpg'></p>
+<p><a href="https://stratechery.com/2018/the-facebook-brand/">The Facebook Brand – Stratechery by Ben Thompson</a></p>
+<br>
+<p>Во время, когда я набираю эти слова, <a href="https://www.theverge.com/2018/3/19/17141266/facebook-cambridge-analytica-user-data-donald-trump-campaign-2016-election">журналисты промывают кости Фейсбуку</a>. Несколько лет назад те надеялись получать ещё больше информации от сторонних сервисов в обмен на свою информацию. «Хотите знать религиозные предпочтения юзера? Его друзей? Да пожалуйста! <a href="https://medium.com/@jamesallworth/what-the-f-was-facebook-thinking-a1c49dbf29c2">Если вы построите на нашей платформе, то получите больше информации, чем можете представить!</a>». Чем воспользовались Cambridge Analytica и собрали профили 50 миллионов человек, хотя личное согласие на это дала четверть миллиона</p>
+<br>
+<p><img src='0x0BADC0DE/gdpr.png'></p>
+<br>
+<p>В мае этого года, в ЕС вступает в силу Общий Регламент по Защите Данных (<a href="https://www.eugdpr.org">GDPR</a>, General Data Protection Regulation). Так, на компании, контролирующие личную информацию, возлагается ответственность за её сохранность. Плюс, компании теперь должны доступно доносить до пользователей причины для сбора личной информации и получать явное согласие на это. Хорошие tl;dr на тему: <a href="https://www.theverge.com/2018/3/28/17172548/gdpr-compliance-requirements-privacy-notice">раз</a> и <a href="https://medium.com/wattx-stories/gdpr-what-your-company-should-know-and-do-starting-now-f62d70f72d7e">два</a></p>
+<br>
+<p>Штраф за нарушение регламента составляет до 20 миллионов евро или 4% её глобального оборота. Эти постановления направлены на защиту пользователей, и следовать им будет легче, если заранее волноваться о них</p>
+<br>
+<p>Рассмотрим абсолютно реалистичный пример, только заменим эфемерные «данные» на что-то более осязаемое…</p>
+<br>
+<p><img src='0x0BADC0DE/93FDA203-4C37-41AD-B03F-1E050EE613E1.jpg'></p>
+<br>
+<p>Вам кинули задачу «Собрать всех котят и закинуть их на безжизненный остров где-то в океане». Вы можете посчитать, что:</p>
+<br>
+<ul><li>начальство всегда право
+</li><li>интересно поработать над задачей с таким грандиозным масштабом
+</li><li>всем же известно, что собаки объективно лучше котят и вы не знаете никого, кто бы с вами не согласился
+</li></ul>
+<br>
+<p>Вы берёте тикет, строите за спринт вундервафлю для сбора котят, сканируете соцсети на любителей котов, скармливаете их адреса этой вундервафле, закрываете три сторипоинта и покупаете на зарплату корма для Мухтара. Может даже расскажете на конференции, какую крутую машину по сбору котят вы построили. Вы можете спокойно выспаться перед началом очередного спринта, потому что вам всё равно на начавшуюся войну за последние оставшиеся фотографии с котейками</p>
+<br>
+<h2>Кто-то всегда прав</h2>
+<p><img src='0x0BADC0DE/ARI-symbol-logo.png'></p>
+<br>
+<p>Вероятнее всего, ваши заказчик и менеджер специализируются не на том, на чём специализируетесь вы. Их опыт разработки может ограничиваться только тем, что они подслушали у кулера. Это абсолютно нормально, но стараясь сделать <i>вашу</i> работу проще и беспокоясь о том, что они "ничего не делают", менеджеры могут подробно расписать то, как вам надо сделать то, что они хотят. Вместо того, чтобы рассказать что именно они хотят</p>
+<br>
+<p>Но у вас больше знаний о том, способах достижения того или иного желания заказчика. Вы знаете, что могут компьютеры в принципе и ваша инфраструктура в частности (или «ваш бюджет на AWS»). Вы знаете, какой UI вызовет проблемы из-за совместимости браузеров. И вы знаете, что в работе с часовыми поясами полегло множество хороших разработчиков</p>
+<br>
+<p><img src='0x0BADC0DE/A2D44128-7B85-46EF-8278-E48A65A31CB4.png'></p>
+<br>
+<p>Это классическая «Проблема XY»</p>
+<br>
+<ul><li>Менеджер имеет проблему (X): у него аллергия на кошек
+</li><li>Менеджер находит решение (Y): запереть кошку в комнате, в которую он никогда не зайдёт
+</li><li>Столкнувшись с количеством кошек, он просит разработчика улучшить (исправить) его решение (Y)
+</li><li>Разработчик улучшает решение (Y) со сбором кошек…
+</li><li>…но не решает изначальную проблему (X), аллергию, и приводит к негативу со стороны любителей котов
+</li></ul>
+<br>
+<p>Знай вы проблему, вы бы решили её проще и дружелюбнее к котятам</p>
+<br>
+<p>И не пытайтесь угадать цель, <i>узнавайте</i> её у заказчика. Иначе вы можете зря потратить своё время и чужие деньги. Если вам всё-таки заплатят</p>
+<br>
+<h2>Грандиозный масштаб</h2>
+<p><img src='0x0BADC0DE/the-social-network-mark-zuckerberg-justin-timberlake-tsn-facebook.jpg'></p>
+<br>
+<p>У разработчиков захватывает дух от возможности создать нечто огромное. Что-то, что затронет <s>миллионы</s> миллиарды людей. Но для этого, нужно построить множество слоёв абстракции. И не только в коде</p>
+<br>
+<p><img src='0x0BADC0DE/forums.png'></p>
+<br>
+<p>Кто пытался найти контакты <i>живой</i> поддержки Гугла или Стима? В процессе создания своих систем, Гугл и Валв абстрагировались от пользователей настолько, насколько смогли. Проблема одной, десяти, тысячи пользователей неважна, когда у тебя есть ещё миллиард. И этот миллиард ещё и должен помочь себе сам, общаясь на форумах поддержки</p>
+<br>
+<p>Десятки страниц переписи тех, у кого такая же проблема, что у тебя. Множество легенд о том, как её починить. И мизерная возможность исправить проблему, если она возникла по твоей вине, потому что никто не предоставит доступ к бекапам или к критичному коду</p>
+<br>
+<p>Теряется возможность договориться с человеком, который сможет понять и исправить вашу ошибку. Можно, как адепты криптовалют, говорить, что банки не нужны, потому что они только создают проблемы. Но, адепты забывают, что эти же банки помогут, когда вы потеряете свою карточку или захотите вернуть деньги, ушедшие мошенникам. Тогда как, в полностью автоматизированном мире, каждый сам за себя. Код знает только те ошибки, которые знали его создатели.</p>
+<br>
+<p>Этика не масштабируется. С масштабом теряется эмпатия и понимание проблем тех, кто «кормит» вашу систему. Просто потому, что они превращаются в ещё одну строчку в БД, ещё одним «мяу» в бездушном океане</p>
+<br>
+<h2>Всем известно, что</h2>
+<p>Когда мы разрабатываем, мы строим предположения и опираемся на наши предрассудки. «Никто сюда не кликнет». «Здесь всё понятно». «Все могут это сделать»</p>
+<br>
+<p><img src='0x0BADC0DE/colbert.png'></p>
+<br>
+<p>Личный пример: пользователи хотят экспортировать данные</p>
+<br>
+<p>Видите серенькое «для экспорта, создайте токен»? Это я вместо общения с теми, <i>кто</i> будет пользоваться экспортом, подумал «я ж девелопер, сделаю так, как всем девелоперам будет удобно. сделаю APIшку». Сделал, работает, довольный</p>
+<br>
+<p>Только экспортом пользуются люди, ни разу не нуждающиеся в API. Им нужен файлик, чтобы перетащить его в гуглодоку. «Но ведь я и все мои друзья умеют <code class='code-inline'>curl</code> и <code class='code-inline'>jq</code>». Лол, пофиг, <s>ты</s> я не дружу со всеми пользователями. И то, что для меня — эджкейс (ну не качаю я CSV), то для пользователей может быть основным занятием с сайтом</p>
+<br>
+<p>Ок, проблема в предубеждениях. Попробуем избавиться от человеческих недостатков с помощью <i>объективно</i> верного кода</p>
+<br>
+<p>Небольшое отступление. Как убить вампира?</p>
+<br>
+<p>Вампира можно убить как угодно, потому что они вымышлены. Я могу написать книгу про вампиров, в которой они умирают от винила на алюминии, и буду прав</p>
+<br>
+<p>Так же и с предсказаниями об искусственном интеллекте. ИИ может решить любые проблемы, дайте только достаточно времени и денег</p>
+<br>
+<blockquote>
+<p><a href="https://twitter.com/qntm/status/972870527089029120">If the output from a neural network has been curated by a human to make it read better then it wasn’t really «written by a neural network», was it</a></p>
+<br>
+</blockquote>
+<p>ИИ разрабатывают люди, которые подбирают входные данные и подтверждают результаты работы сетей. Эти люди, в большинстве своём, выглядят похоже, имеют схожий опыт и круг общения. В процессе работы, в сеть (не всегда осознанно) закладываются опыт и предрассудки разработчиков</p>
+<br>
+<p><img src='0x0BADC0DE/sci.gif'></p>
+<br>
+<p>Так получаются, казусы вроде «никто не будет грустить о пропаже котеек». Когда все твои друзья — собачатники, и ты считаешь, что можно пренебречь небольшим процентом ложноположительных, то очень вероятно, что в этот процент попадут многие из вне твоего круга общения</p>
+<br>
+<h2>Outro</h2>
+<p><img src='0x0BADC0DE/HJ7Z6in.gif'></p>
+<br>
+<p>Так ли мы плохи, как мы выглядим, пока «быстро двигаемся и ломаем вещи»? Возможно…</p>
+<br>
+<p>Но у меня остаётся надежда, что кто-то прочитает эти слова и также задумается о последствиях. О том, что получается, когда люди, которые не хотят знать мир и других людей, имеют возможность влиять на них</p>
+<br>
+<p><img src='0x0BADC0DE/IMG_0303.png'></p>
+<br>
+<p>Мир противится быть вписанным в модели, он запутанный и разнообразный. Б<i>о</i>льшая часть того, что мы видим и думаем, было создано людьми. Мы можем притворяться, что наш софт — аполитичный и не нуждается в «чужом» мнении. Но чем раньше мы свыкнемся с тем, что наш труд — для людей, тем лучше</p>
+<br>
+<p>Media List:</p>
+<ul><li><a href="https://www.deconstructconf.com/2017/michael-bernstein-ways-of-selling">Ways of Selling</a>
+</li><li><a href="http://idlewords.com/talks/haunted_by_data.htm">Haunted by Data</a>
+</li><li><a href="https://weaponsofmathdestructionbook.com/">Weapons of Math Destruction</a>
+</li></ul>
+<br>
+<p>Если из всей этой простынки вы запомните только десять слов, то пусть это будут эти слова:</p>
+<br>
+<ol start="1"><li>Интересуйтесь целями
+</li><li>Не сводите людей к числам
+</li><li>Расширяйте круг общения
+</li></ol>
+<hr>
+<p><i><a href="https://anton.codes">Антон Веринов</a>, март 2018</i></p>
+        </div>
+        <script type="text/javascript">
+            (function() {
+
+    var doc_ols = document.getElementsByTagName("ol");
+
+    for ( i=0; i<doc_ols.length; i++) {
+
+        var ol_start = doc_ols[i].getAttribute("start") - 1;
+        doc_ols[i].setAttribute("style", "counter-reset:ol " + ol_start + ";");
+
+    }
+
+})();
+        </script>
+        <style>
+            html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td,article,aside,canvas,details,embed,figure,figcaption,footer,header,hgroup,menu,nav,output,ruby,section,summary,time,mark,audio,video{margin:0;padding:0;border:0;font:inherit;font-size:100%;vertical-align:baseline}html{line-height:1}ol,ul{list-style:none}table{border-collapse:collapse;border-spacing:0}caption,th,td{text-align:left;font-weight:normal;vertical-align:middle}q,blockquote{quotes:none}q:before,q:after,blockquote:before,blockquote:after{content:"";content:none}a img{border:none}article,aside,details,figcaption,figure,footer,header,hgroup,main,menu,nav,section,summary{display:block}*{-moz-box-sizing:border-box;-webkit-box-sizing:border-box;box-sizing:border-box}html{font-size:87.5%;line-height:1.57143em}html{font-size:14px;line-height:1.6em;-webkit-text-size-adjust:100%}body{background:#fcfcfc;color:#545454;text-rendering:optimizeLegibility;font-family:"AvenirNext-Regular"}a{color:#de4c4f;text-decoration:none}h1{font-family:"AvenirNext-Medium";color:#333;font-size:1.6em;line-height:1.3em;margin-bottom:.78571em}h2{font-family:"AvenirNext-Medium";color:#333;font-size:1.3em;line-height:1em;margin-bottom:.62857em}h3{font-family:"AvenirNext-Medium";color:#333;font-size:1.15em;line-height:1em;margin-bottom:.47143em}p{margin-bottom:1.57143em;hyphens:auto}hr{height:1px;border:0;background-color:#dedede;margin:-1px auto 1.57143em auto}ul,ol{margin-bottom:.31429em}ul ul,ul ol,ol ul,ol ol{margin-bottom:0px}ol li:before{content:counter(ol) ".";counter-increment:ol;color:#e06e73;text-align:right;display:inline-block;min-width:1em;margin-right:0.5em}b,strong{font-family:"AvenirNext-Bold"}i,em{font-family:"AvenirNext-Italic"}code{font-family:"Menlo-Regular"}.text-overflow-ellipsis{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sf_code_syntax_string{color:#D33905}.sf_code_syntax_comment{color:#838383}.sf_code_syntax_documentation_comment{color:#128901}.sf_code_syntax_number{color:#0E73A2}.sf_code_syntax_project{color:#5B2599}.sf_code_syntax_keyword{color:#0E73A2}.sf_code_syntax_character{color:#1B00CE}.sf_code_syntax_preprocessor{color:#920448}.note-wrapper{max-width:46em;margin:0px auto;padding:1.57143em 3.14286em}.note-wrapper.spotlight-preview{overflow-x:hidden}u{text-decoration:none;background-image:linear-gradient(to bottom, rgba(0,0,0,0) 50%,#e06e73 50%);background-repeat:repeat-x;background-size:2px 2px;background-position:0 1.05em}s{color:#878787}p{margin-bottom:0.1em}hr{margin-bottom:0.7em;margin-top:0.7em}ul li{text-indent:-0.35em}ul li:before{content:"•";color:#e06e73;display:inline-block;margin-right:0.3em}ul ul{margin-left:1.25714em}ol li{text-indent:-1.45em}ol ol{margin-left:1.25714em}blockquote{display:block;margin-left:-1em;padding-left:0.8em;border-left:0.2em solid #e06e73}.todo-list ul{margin-left:1.88571em}.todo-list li{text-indent:-1.75em}.todo-list li:before{content:"";display:static;margin-right:0px}.todo-checkbox{text-indent:-1.7em}.todo-checkbox svg{margin-right:0.3em;position:relative;top:0.2em}.todo-checkbox svg #check{display:none}.todo-checkbox.todo-checked #check{display:inline}.todo-checkbox.todo-checked .todo-text{text-decoration:line-through;color:#878787}.code-inline{display:inline;background:white;border:solid 1px #dedede;padding:0.2em 0.5em;font-size:0.9em}.code-multiline{display:block;background:white;border:solid 1px #dedede;padding:0.7em 1em;font-size:0.9em;overflow-x:auto}.hashtag{display:inline-block;color:white;background:#b8bfc2;padding:0.0em 0.5em;border-radius:1em;text-indent:0}.hashtag a{color:#fff}.address a{color:#545454;background-image:linear-gradient(to bottom, rgba(0,0,0,0) 50%,#0da35e 50%);background-repeat:repeat-x;background-size:2px 2px;background-position:0 1.05em}.address svg{position:relative;top:0.2em;display:inline-block;margin-right:0.2em}.color-preview{display:inline-block;width:1em;height:1em;border:solid 1px rgba(0,0,0,0.3);border-radius:50%;margin-right:0.1em;position:relative;top:0.2em;white-space:nowrap}.color-code{margin-right:0.2em;font-family:"Menlo-Regular";font-size:0.9em}.color-hash{opacity:0.4}.ordered-list-number{color:#e06e73;text-align:right;display:inline-block;min-width:1em}.arrow svg{position:relative;top:0.08em;display:inline-block;margin-right:0.15em;margin-left:0.15em}.arrow svg #rod{stroke:#545454}.arrow svg #point{fill:#545454}mark{color:inherit;display:inline-block;padding:0px 4px;background-color:#fcffc0}img{max-width:100%;height:auto}
+
+        </style>
+
+        <script type="text/javascript">
+          var _gauges = _gauges || [];
+          (function() {
+            var t   = document.createElement('script');
+            t.type  = 'text/javascript';
+            t.async = true;
+            t.id    = 'gauges-tracker';
+            t.setAttribute('data-site-id', '5843fd0cbb922a42d6006514');
+            t.setAttribute('data-track-path', 'https://track.gaug.es/track.gif');
+            t.src = 'https://d36ee2fcip1434.cloudfront.net/track.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(t, s);
+          })();
+        </script>
+    </body>
+</html>
