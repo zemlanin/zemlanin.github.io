@@ -1,0 +1,20 @@
+{
+  "subject": "acct:anton@zemlan.in",
+  "aliases": [],
+  "links": [
+    {
+      "rel": "http://webfinger.net/rel/profile-page",
+      "type": "text/html",
+      "href": "https://mastodon.devua.club/@zemlanin"
+    },
+    {
+      "rel": "self",
+      "type": "application/activity+json",
+      "href": "https://mastodon.devua.club/users/zemlanin"
+    },
+    {
+      "rel": "http://ostatus.org/schema/1.0/subscribe",
+      "template": "https://mastodon.devua.club/authorize_interaction?uri={uri}"
+    }
+  ]
+}
